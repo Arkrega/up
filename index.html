@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Media ke GitHub Raw</title>
+<link rel="icon" href="https://github.githubassets.com/assets/apple-touch-icon-144x144-b882e354c005.png">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+--bg:#050505;--text:#fff;--muted:#aaa;
+--primary:#00d1ff;--secondary:#00a9c7;
+--surface:rgba(255,255,255,0.05);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{
+background:
+radial-gradient(circle at 20% 20%,rgba(0,209,255,.1),transparent 30%),
+radial-gradient(circle at 80% 10%,rgba(0,169,199,.08),transparent 25%),
+radial-gradient(circle at 50% 90%,rgba(255,255,255,.05),transparent 30%),
+var(--bg);
+color:var(--text);min-height:100vh;padding-bottom:80px;
+}
+.container{max-width:800px;margin:20px auto;padding:0 20px;}
+.profile-wrapper{
+width:120px;height:120px;border-radius:50%;
+margin:0 auto 15px;padding:4px;
+background:linear-gradient(135deg,var(--primary),var(--secondary));
+box-shadow:0 0 25px rgba(0,209,255,.3);
+animation:glow 4s infinite alternate
+}
+.profile-wrapper video{
+width:100%;height:100%;border-radius:50%;object-fit:cover
+}
+@keyframes glow{
+0%{box-shadow:0 0 15px var(--primary)}
+100%{box-shadow:0 0 30px var(--secondary)}
+}
+.header{text-align:center;margin-bottom:30px}
+.title{font-family:'Orbitron',sans-serif;font-size:28px;font-weight:800}
+.subtitle{color:var(--primary);font-weight:600;font-size:14px;letter-spacing:1px}
+.nav-tabs{
+display:flex;justify-content:space-between;
+background:rgba(0,0,0,0.8);
+backdrop-filter:blur(10px);
+border-top:1px solid rgba(255,255,255,0.1);
+position:fixed;bottom:0;left:0;right:0;
+padding:10px 10px;z-index:100;
+}
+.nav-item{
+flex:1;text-align:center;color:var(--muted);
+cursor:pointer;padding:8px 5px;font-size:11px;
+transition:all 0.3s ease;display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.nav-item i{font-size:18px;}
+.nav-item.active{color:var(--primary);}
+.nav-item.active i{transform:translateY(-3px);}
+.tab-content{display:none;animation:fadeIn 0.4s ease forwards;}
+.tab-content.active{display:block;}
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(10px)}
+to{opacity:1;transform:translateY(0)}
+}
+.section{
+background:var(--surface);
+backdrop-filter:blur(15px);
+border:1px solid rgba(255,255,255,.1);
+border-radius:18px;padding:24px;
+margin-bottom:20px;position:relative
+}
+.section::before{
+content:'';position:absolute;top:0;left:0;right:0;height:3px;
+background:linear-gradient(90deg,var(--primary),var(--secondary));
+border-radius:18px 18px 0 0;
+}
+.section-title{
+font-family:'Orbitron',sans-serif;
+font-size:20px;margin-bottom:20px;
+display:flex;align-items:center;gap:10px;color:var(--primary);
+}
+.label{display:block;margin-bottom:8px;font-weight:600;font-size:14px;color:#ddd}
+.input{
+width:100%;padding:14px;
+background:rgba(0,0,0,.3);
+border:1px solid rgba(255,255,255,.15);
+border-radius:12px;color:#fff;margin-bottom:15px;
+outline:none;transition:border 0.3s;
+}
+.input:focus{border-color:var(--primary);}
+.hint{font-size:12px;color:var(--muted);margin-bottom:15px;margin-top:-5px;}
+.btn{
+width:100%;padding:14px;
+background:linear-gradient(135deg,var(--primary),var(--secondary));
+border:none;border-radius:12px;
+color:#000;font-weight:700;font-size:15px;cursor:pointer;
+transition:transform 0.2s,box-shadow 0.2s;
+display:flex;justify-content:center;align-items:center;gap:8px;flex:1;
+}
+.btn:active{transform:scale(0.98);}
+.btn-danger{background:linear-gradient(135deg,#ff4d4d,#c90000);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--primary);color:var(--primary);}
+.btn-info{background:linear-gradient(135deg,#8e2de2,#4a00e0);color:#fff;}
+.progress-container{display:none;margin-top:20px;}
+.progress-text{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;color:var(--primary);}
+.progress-bar-bg{width:100%;height:10px;background:rgba(255,255,255,0.1);border-radius:5px;overflow:hidden;}
+.progress-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--secondary));transition:width 0.3s;}
+.result-box{
+background:rgba(0,0,0,0.5);padding:15px;border-radius:12px;
+margin-top:15px;word-break:break-all;font-size:13px;color:#00ff88;
+border:1px solid rgba(0,255,136,0.3);display:none;
+}
+.result-box a{color:#00ff88;text-decoration:none;}
+.radio-group{display:flex;gap:10px;margin-bottom:20px;}
+.radio-label{
+flex:1;background:rgba(255,255,255,0.05);padding:12px 5px;
+border-radius:12px;text-align:center;cursor:pointer;
+border:1px solid rgba(255,255,255,0.1);transition:all 0.3s;
+font-size:13px;font-weight:600;
+}
+.radio-input{display:none;}
+.radio-input:checked + .radio-label{
+background:rgba(0,209,255,0.15);border-color:var(--primary);color:var(--primary);
+}
+.list-container{max-height:400px;overflow-y:auto;padding-right:5px;}
+.list-container::-webkit-scrollbar{width:6px;}
+.list-container::-webkit-scrollbar-thumb{background:var(--primary);border-radius:10px;}
+.list-item{
+background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05);
+border-radius:10px;padding:15px;margin-bottom:10px;
+display:flex;justify-content:space-between;align-items:center;
+}
+.list-info{flex:1;overflow:hidden;}
+.list-title{font-weight:600;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-title a{color:var(--text);text-decoration:none;}
+.list-actions{display:flex;gap:8px;}
+.action-btn{
+padding:8px 12px;border:none;border-radius:8px;font-size:12px;font-weight:600;
+cursor:pointer;color:#fff;
+}
+.btn-use{background:var(--secondary);color:#000;}
+.btn-del{background:#ff4d4d;}
+.status-msg{text-align:center;font-size:14px;margin-top:15px;display:none;}
+.profile-card{
+display:none;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);
+border-radius:12px;padding:15px;margin-top:20px;align-items:center;gap:15px;
+}
+.profile-card img{width:56px;height:56px;border-radius:50%;border:2px solid var(--primary);}
+.profile-card-info{flex:1;}
+.profile-card-name{font-weight:700;font-size:16px;color:#fff;}
+.profile-card-user{font-size:13px;color:var(--muted);}
+.profile-card-badge{background:var(--primary);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;}
+.history-card{
+background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);
+border-radius:12px;padding:15px;margin-bottom:15px;
+}
+.history-header{
+display:flex;justify-content:space-between;align-items:center;
+margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:10px;
+}
+.history-date{font-size:12px;color:var(--muted);}
+.history-badge{
+background:rgba(0,209,255,0.1);color:var(--primary);
+font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;
+}
+.history-meta{font-size:13px;font-weight:600;margin-bottom:10px;color:#fff;}
+.history-links{
+max-height:120px;overflow-y:auto;background:rgba(0,0,0,0.3);
+padding:10px;border-radius:8px;font-size:12px;
+}
+.history-links a{color:#00ff88;text-decoration:none;display:block;margin-bottom:6px;word-break:break-all;}
+.history-links::-webkit-scrollbar{width:4px;}
+.history-links::-webkit-scrollbar-thumb{background:var(--secondary);border-radius:10px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="profile-wrapper">
+<video src="https://raw.githubusercontent.com/Alifkece/media/main/uploads/1767004292023_downloadfile.mp4" autoplay loop muted playsinline></video>
+</div>
+<div class="header">
+<h1 class="title">Media GitHub</h1>
+<p class="subtitle">Powered By ArkRega🍓</p>
+</div>
+
+<div id="tab-settings" class="tab-content active">
+<div class="section">
+<h2 class="section-title"><i class="fas fa-cog"></i> Konfigurasi Akun</h2>
+<label class="label">Token GitHub</label>
+<input type="password" id="cfgToken" class="input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+<label class="label">Username Owner</label>
+<input type="text" id="cfgOwner" class="input" placeholder="Contoh: ArkRega">
+<label class="label">Nama Repositori</label>
+<input type="text" id="cfgRepo" class="input" placeholder="Contoh: media-cloud">
+<label class="label">Target Branch</label>
+<input type="text" id="cfgBranch" class="input" value="main">
+<label class="label">Target Folder Root (Opsional)</label>
+<input type="text" id="cfgFolder" class="input" placeholder="Kosongkan jika ingin di luar">
+
+<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
+<button class="btn" onclick="saveConfig()"><i class="fas fa-save"></i> Simpan</button>
+<button class="btn btn-info" id="btnTest" onclick="testConnection()"><i class="fas fa-wifi"></i> Test Koneksi</button>
+<button class="btn btn-outline" onclick="clearConfig()"><i class="fas fa-trash"></i> Reset</button>
+</div>
+<div id="cfgStatus" class="status-msg" style="color:var(--primary);"></div>
+
+<div class="profile-card" id="ghProfileCard">
+<img id="ghAvatar" src="" alt="Avatar">
+<div class="profile-card-info">
+<div class="profile-card-name" id="ghName"></div>
+<div class="profile-card-user" id="ghUsername"></div>
+<div class="profile-card-badge">CONNECTED</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="tab-repos" class="tab-content">
+<div class="section">
+<h2 class="section-title"><i class="fas fa-plus-square"></i> Buat Repositori</h2>
+<input type="text" id="newRepoName" class="input" placeholder="Nama Repositori Baru">
+<input type="text" id="newRepoDesc" class="input" placeholder="Deskripsi (Opsional)">
+<div style="margin-bottom:15px;display:flex;align-items:center;gap:10px;">
+<input type="checkbox" id="isPrivateRepo" style="width:18px;height:18px;">
+<label for="isPrivateRepo" style="font-size:14px;">Jadikan Private</label>
+</div>
+<button class="btn" onclick="createRepo()"><i class="fas fa-rocket"></i> Buat Repo</button>
+<div id="repoStatus" class="status-msg"></div>
+</div>
+<div class="section">
+<h2 class="section-title"><i class="fas fa-list"></i> Repositori Saya</h2>
+<button class="btn btn-outline" onclick="fetchRepos()" style="margin-bottom:15px;flex:none;width:100%;"><i class="fas fa-sync"></i> Load Repositori</button>
+<div id="repoList" class="list-container"></div>
+</div>
+</div>
+
+<div id="tab-upload" class="tab-content">
+<div class="section">
+<h2 class="section-title"><i class="fas fa-cloud-upload-alt"></i> Upload Engine</h2>
+<div class="radio-group">
+<input type="radio" name="upMode" id="modeSingle" class="radio-input" value="single" checked onchange="switchMode()">
+<label for="modeSingle" class="radio-label"><i class="fas fa-file"></i> File</label>
+<input type="radio" name="upMode" id="modeZip" class="radio-input" value="zip" onchange="switchMode()">
+<label for="modeZip" class="radio-label"><i class="fas fa-file-archive"></i> ZIP</label>
+<input type="radio" name="upMode" id="modeFolder" class="radio-input" value="folder" onchange="switchMode()">
+<label for="modeFolder" class="radio-label"><i class="fas fa-folder-open"></i> Folder</label>
+</div>
+
+<div id="inputSingleWrap">
+<label class="label">Pilih Satu File</label>
+<input type="file" id="fileSingle" class="input">
+</div>
+<div id="inputZipWrap" style="display:none;">
+<label class="label">Pilih File ZIP (Otomatis Ekstrak)</label>
+<input type="file" id="fileZip" class="input" accept=".zip">
+</div>
+<div id="inputFolderWrap" style="display:none;">
+<label class="label">Pilih Folder</label>
+<input type="file" id="fileFolder" class="input" webkitdirectory directory multiple>
+</div>
+
+<button class="btn" onclick="startUploadProcess()" id="btnUpload"><i class="fas fa-upload"></i> Mulai Upload</button>
+
+<div class="progress-container" id="uploadProgress">
+<div class="progress-text">
+<span id="progLabel">Menyiapkan...</span>
+<span id="progPercent">0%</span>
+</div>
+<div class="progress-bar-bg">
+<div class="progress-bar-fill" id="progFill"></div>
+</div>
+</div>
+<div class="result-box" id="uploadResult"></div>
+</div>
+</div>
+
+<div id="tab-files" class="tab-content">
+<div class="section">
+<h2 class="section-title"><i class="fas fa-folder-tree"></i> File Explorer</h2>
+<p class="hint">Navigasi dan kelola file serta folder repositori Anda.</p>
+<button class="btn btn-outline" onclick="fetchFiles()" style="margin-bottom:15px;flex:none;width:100%;"><i class="fas fa-sync"></i> Refresh Explorer</button>
+<div id="fileList" class="list-container"></div>
+</div>
+</div>
+
+<div id="tab-history" class="tab-content">
+<div class="section">
+<h2 class="section-title"><i class="fas fa-history"></i> Riwayat Upload</h2>
+<p class="hint">Catatan lokal file yang berhasil di-push ke GitHub.</p>
+<button class="btn btn-danger" onclick="clearHistoryObj()" style="margin-bottom:15px;flex:none;width:100%;"><i class="fas fa-trash-alt"></i> Bersihkan Riwayat</button>
+<div id="historyList" class="list-container"></div>
+</div>
+</div>
+
+</div>
+
+<div class="nav-tabs">
+<div class="nav-item active" onclick="openTab('tab-settings', this)"><i class="fas fa-cog"></i><span>Setelan</span></div>
+<div class="nav-item" onclick="openTab('tab-repos', this)"><i class="fas fa-book"></i><span>Repos</span></div>
+<div class="nav-item" onclick="openTab('tab-upload', this)"><i class="fas fa-cloud-upload-alt"></i><span>Upload</span></div>
+<div class="nav-item" onclick="openTab('tab-files', this)"><i class="fas fa-folder-open"></i><span>Files</span></div>
+<div class="nav-item" onclick="openTab('tab-history', this)"><i class="fas fa-history"></i><span>Riwayat</span></div>
+</div>
+
+<script>
+let currentExpPath = null;
+
+function openTab(tabId, el){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+document.getElementById(tabId).classList.add('active');
+el.classList.add('active');
+}
+
+function saveConfig(){
+const c={
+t:document.getElementById('cfgToken').value.trim(),
+o:document.getElementById('cfgOwner').value.trim(),
+r:document.getElementById('cfgRepo').value.trim(),
+b:document.getElementById('cfgBranch').value.trim()||'main',
+f:document.getElementById('cfgFolder').value.trim()
+};
+localStorage.setItem('rdaGitCfg',JSON.stringify(c));
+const s=document.getElementById('cfgStatus');
+s.innerText="Konfigurasi tersimpan!";
+s.style.display="block";
+setTimeout(()=>s.style.display="none",2000);
+}
+
+function loadConfig(){
+const s=localStorage.getItem('rdaGitCfg');
+if(s){
+const c=JSON.parse(s);
+document.getElementById('cfgToken').value=c.t||'';
+document.getElementById('cfgOwner').value=c.o||'';
+document.getElementById('cfgRepo').value=c.r||'';
+document.getElementById('cfgBranch').value=c.b||'main';
+document.getElementById('cfgFolder').value=c.f||'';
+if(c.t) testConnectionSilent(c.t);
+}
+renderHistory();
+}
+document.addEventListener('DOMContentLoaded',loadConfig);
+
+function clearConfig(){
+localStorage.removeItem('rdaGitCfg');
+document.getElementById('cfgToken').value='';
+document.getElementById('cfgOwner').value='';
+document.getElementById('cfgRepo').value='';
+document.getElementById('cfgBranch').value='main';
+document.getElementById('cfgFolder').value='';
+document.getElementById('ghProfileCard').style.display='none';
+}
+
+function testConnectionSilent(token){
+const xhr=new XMLHttpRequest();
+xhr.open('GET','https://api.github.com/user');
+xhr.setRequestHeader('Authorization','Bearer '+token.trim());
+xhr.setRequestHeader('Accept','application/vnd.github+json');
+xhr.onload=()=>{
+if(xhr.status===200){
+try{
+const res=JSON.parse(xhr.responseText);
+document.getElementById('ghAvatar').src=res.avatar_url;
+document.getElementById('ghName').innerText=res.name||res.login;
+document.getElementById('ghUsername').innerText='@'+res.login;
+document.getElementById('ghProfileCard').style.display='flex';
+}catch(e){}
+}
+};
+xhr.send();
+}
+
+function testConnection(){
+const t=document.getElementById('cfgToken').value.trim();
+if(!t)return alert('Token GitHub belum diisi!');
+const btn=document.getElementById('btnTest');
+const pCard=document.getElementById('ghProfileCard');
+btn.innerHTML="<i class='fas fa-spinner fa-spin'></i> Testing...";
+const xhr=new XMLHttpRequest();
+xhr.open('GET','https://api.github.com/user');
+xhr.setRequestHeader('Authorization','Bearer '+t);
+xhr.setRequestHeader('Accept','application/vnd.github+json');
+xhr.timeout=30000;
+xhr.onload=()=>{
+btn.innerHTML="<i class='fas fa-wifi'></i> Test Koneksi";
+if(xhr.status===200){
+try{
+const res=JSON.parse(xhr.responseText);
+document.getElementById('ghAvatar').src=res.avatar_url;
+document.getElementById('ghName').innerText=res.name||res.login;
+document.getElementById('ghUsername').innerText='@'+res.login;
+pCard.style.display='flex';
+alert('Koneksi berhasil! Token valid.');
+}catch(e){alert('Respon tidak valid.');}
+}else{
+pCard.style.display='none';
+let msg='HTTP '+xhr.status;
+try{msg=JSON.parse(xhr.responseText).message||msg;}catch(e){}
+alert('Koneksi gagal: '+msg);
+}
+};
+xhr.onerror=()=>{
+btn.innerHTML="<i class='fas fa-wifi'></i> Test Koneksi";
+pCard.style.display='none';
+alert('Network error. Periksa koneksi internet atau ekstensi pemblokir (adblock/privacy).');
+};
+xhr.ontimeout=()=>{
+btn.innerHTML="<i class='fas fa-wifi'></i> Test Koneksi";
+alert('Koneksi timeout.');
+};
+xhr.send();
+}
+
+function req(method,url,body,cb,errCb){
+const t=document.getElementById('cfgToken').value.trim();
+if(!t){alert('Token belum diisi di Setelan!');return;}
+const x=new XMLHttpRequest();
+const finalUrl = method==='GET' ? url+(url.includes('?')?'&':'?')+'_t='+Date.now() : url;
+x.open(method,finalUrl);
+x.setRequestHeader('Authorization','Bearer '+t);
+x.setRequestHeader('Accept','application/vnd.github+json');
+if(body)x.setRequestHeader('Content-Type','application/json');
+x.timeout=60000;
+x.onload=()=>{
+let data={};
+try{data=JSON.parse(x.responseText||'{}');}catch(e){data={};}
+if(x.status>=200&&x.status<300){
+cb(data);
+}else{
+const err={status:x.status,message:data.message||('HTTP '+x.status)};
+if(errCb)errCb(err);
+else alert('Error '+x.status+': '+err.message);
+}
+};
+x.onerror=()=>{
+const err={message:'Network error'};
+if(errCb)errCb(err);
+else alert('Network error. Periksa koneksi atau ekstensi pemblokir.');
+};
+x.ontimeout=()=>{
+const err={message:'Request timeout'};
+if(errCb)errCb(err);
+else alert('Request timeout.');
+};
+x.send(body?JSON.stringify(body):null);
+}
+
+function apiReq(method, url, body){
+return new Promise((resolve, reject) => {
+const t = document.getElementById('cfgToken').value.trim();
+if(!t) return reject({message:'Token GitHub belum diisi.'});
+const xhr = new XMLHttpRequest();
+const finalUrl = method==='GET' ? url+(url.includes('?')?'&':'?')+'_t='+Date.now() : url;
+xhr.open(method, finalUrl);
+xhr.setRequestHeader('Authorization', 'Bearer ' + t);
+xhr.setRequestHeader('Accept', 'application/vnd.github+json');
+if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+xhr.timeout = 120000;
+xhr.onload = () => {
+let data = {};
+try { data = JSON.parse(xhr.responseText || '{}'); } catch (e) { data = {}; }
+if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+else reject({ status: xhr.status, message: data.message || ('HTTP ' + xhr.status) });
+};
+xhr.onerror = () => reject({ message: 'Network error. Periksa koneksi atau ekstensi pemblokir.' });
+xhr.ontimeout = () => reject({ message: 'Request timeout (120s).' });
+xhr.send(body ? JSON.stringify(body) : null);
+});
+}
+
+function createRepo(){
+const n=document.getElementById('newRepoName').value.trim();
+const d=document.getElementById('newRepoDesc').value.trim();
+const p=document.getElementById('isPrivateRepo').checked;
+const s=document.getElementById('repoStatus');
+if(!n)return alert('Nama repo wajib diisi!');
+s.style.display="block";
+s.style.color="var(--primary)";
+s.innerHTML="<i class='fas fa-spinner fa-spin'></i> Membuat...";
+req('POST','https://api.github.com/user/repos',{name:n,description:d,private:p,auto_init:true},(res)=>{
+s.style.color="#00ff88";
+s.innerText="Repositori berhasil dibuat!";
+document.getElementById('cfgRepo').value=res.name;
+document.getElementById('cfgOwner').value=res.owner.login;
+document.getElementById('cfgBranch').value=res.default_branch||'main';
+saveConfig();
+fetchRepos();
+},(err)=>{
+s.style.color="#ff4d4d";
+s.innerText="Gagal: "+err.message;
+});
+}
+
+function fetchRepos(){
+const c=document.getElementById('repoList');
+c.innerHTML="<div style='text-align:center;padding:20px;'><i class='fas fa-spinner fa-spin'></i> Mengambil data...</div>";
+req('GET','https://api.github.com/user/repos?sort=updated&per_page=100',null,(res)=>{
+if(res.length===0)return c.innerHTML="<div style='text-align:center;color:var(--muted)'>Tidak ada repositori.</div>";
+c.innerHTML=res.map(r=>`
+<div class="list-item">
+<div class="list-info">
+<div class="list-title"><i class="fas ${r.private?'fa-lock':'fa-globe'}"></i> <a href="${r.html_url}" target="_blank">${r.full_name}</a></div>
+</div>
+<div class="list-actions">
+<button class="action-btn btn-use" onclick="useR('${r.owner.login}','${r.name}','${r.default_branch||'main'}')"><i class="fas fa-check"></i></button>
+<button class="action-btn btn-del" onclick="delR('${r.owner.login}','${r.name}')"><i class="fas fa-trash"></i></button>
+</div>
+</div>
+`).join('');
+});
+}
+
+function useR(o,r,b){
+document.getElementById('cfgOwner').value=o;
+document.getElementById('cfgRepo').value=r;
+document.getElementById('cfgBranch').value=b||'main';
+saveConfig();
+alert(`Repositori diatur ke ${o}/${r}`);
+}
+
+function delR(o,r){
+if(confirm(`Hapus permanen repo ${o}/${r}?`)){
+req('DELETE',`https://api.github.com/repos/${o}/${r}`,null,()=>{
+alert('Dihapus!');fetchRepos();
+});
+}
+}
+
+function fetchFiles(navPath){
+const o=document.getElementById('cfgOwner').value.trim();
+const r=document.getElementById('cfgRepo').value.trim();
+const f=document.getElementById('cfgFolder').value.trim();
+if(navPath !== undefined) currentExpPath = navPath;
+else if(currentExpPath === null) currentExpPath = f;
+const c=document.getElementById('fileList');
+if(!o||!r)return alert('Setel Owner dan Repo dulu!');
+c.innerHTML="<div style='text-align:center;padding:20px;'><i class='fas fa-spinner fa-spin'></i> Memuat explorer...</div>";
+const p=currentExpPath?`contents/${currentExpPath}`:'contents';
+req('GET',`https://api.github.com/repos/${o}/${r}/${p}`,null,(res)=>{
+if(!Array.isArray(res)) return c.innerHTML="<div style='text-align:center;color:#ff4d4d'>Bukan folder atau direktori tidak ditemukan.</div>";
+let html = '';
+if(currentExpPath){
+let parts = currentExpPath.split('/');
+parts.pop();
+let up = parts.join('/');
+html += `
+<div style="margin-bottom:15px;display:flex;align-items:center;gap:10px;">
+<button class="btn btn-outline" style="padding:6px 12px;font-size:12px;flex:none;width:auto;" onclick="fetchFiles('${up}')"><i class="fas fa-level-up-alt"></i> Naik</button>
+<span style="font-size:12px;color:var(--muted);word-break:break-all;">/${currentExpPath}</span>
+</div>`;
+} else {
+html += `<div style="margin-bottom:15px;font-size:12px;color:var(--muted);"><i class="fas fa-home"></i> / (Root)</div>`;
+}
+if(res.length===0){
+c.innerHTML = html + "<div style='text-align:center;color:var(--muted)'>Folder kosong.</div>";
+return;
+}
+const dirs = res.filter(x=>x.type==='dir');
+const files = res.filter(x=>x.type==='file');
+html += dirs.map(x=>`
+<div class="list-item">
+<div class="list-info" style="cursor:pointer;" onclick="fetchFiles('${x.path}')">
+<div class="list-title"><i class="fas fa-folder" style="color:var(--secondary);margin-right:8px;"></i> ${x.name}</div>
+</div>
+<div class="list-actions">
+<button class="action-btn btn-del" onclick="delDir('${x.path}')"><i class="fas fa-trash"></i></button>
+</div>
+</div>
+`).join('');
+html += files.map(x=>`
+<div class="list-item">
+<div class="list-info">
+<div class="list-title"><i class="fas fa-file" style="color:var(--muted);margin-right:8px;"></i> <a href="${x.download_url}" target="_blank">${x.name}</a></div>
+</div>
+<div class="list-actions">
+<button class="action-btn btn-del" onclick="delF('${x.path}','${x.sha}')"><i class="fas fa-trash"></i></button>
+</div>
+</div>
+`).join('');
+c.innerHTML = html;
+},(e)=>{
+c.innerHTML=`<div style='text-align:center;color:#ff4d4d'>Error: ${e.message}</div>`;
+});
+}
+
+function delF(p,s){
+const o=document.getElementById('cfgOwner').value.trim();
+const r=document.getElementById('cfgRepo').value.trim();
+const b=document.getElementById('cfgBranch').value.trim();
+if(confirm('Hapus file ini?')){
+req('DELETE',`https://api.github.com/repos/${o}/${r}/contents/${p}`,{message:`Delete ${p}`,sha:s,branch:b},()=>{
+fetchFiles(currentExpPath);
+});
+}
+}
+
+async function delDir(targetPath){
+if(!confirm(`Hapus permanen folder '${targetPath}' beserta seluruh isinya?\nAksi ini tidak dapat dibatalkan!`)) return;
+const o=document.getElementById('cfgOwner').value.trim();
+const r=document.getElementById('cfgRepo').value.trim();
+const b=document.getElementById('cfgBranch').value.trim();
+const c=document.getElementById('fileList');
+c.innerHTML="<div style='text-align:center;padding:20px;'><i class='fas fa-spinner fa-spin'></i> Menghapus folder via Git Tree...</div>";
+try {
+const treeRes = await apiReq('GET', `https://api.github.com/repos/${o}/${r}/git/trees/${b}?recursive=1`);
+const blobs = treeRes.tree.filter(t => t.type === 'blob' && t.path.startsWith(targetPath + '/'));
+if(blobs.length === 0) throw new Error("Folder kosong atau tidak ditemukan.");
+const payload = blobs.map(t => ({ path: t.path, mode: t.mode, type: t.type, sha: null }));
+const refRes = await apiReq('GET', `https://api.github.com/repos/${o}/${r}/git/ref/heads/${b}`);
+const commitSha = refRes.object.sha;
+const commitRes = await apiReq('GET', `https://api.github.com/repos/${o}/${r}/git/commits/${commitSha}`);
+const newTreeRes = await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/trees`, {
+base_tree: commitRes.tree.sha,
+tree: payload
+});
+const newCommitRes = await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/commits`, {
+message: `Delete folder ${targetPath} via ArkRega Media`,
+tree: newTreeRes.sha,
+parents: [commitSha]
+});
+await apiReq('PATCH', `https://api.github.com/repos/${o}/${r}/git/refs/heads/${b}`, {
+sha: newCommitRes.sha
+});
+if(currentExpPath && currentExpPath.startsWith(targetPath)) fetchFiles(''); else fetchFiles(currentExpPath);
+} catch(err) {
+alert('Gagal hapus folder: ' + (err.message || 'Unknown error'));
+fetchFiles(currentExpPath);
+}
+}
+
+function switchMode(){
+const m=document.querySelector('input[name="upMode"]:checked').value;
+document.getElementById('inputSingleWrap').style.display=m==='single'?'block':'none';
+document.getElementById('inputZipWrap').style.display=m==='zip'?'block':'none';
+document.getElementById('inputFolderWrap').style.display=m==='folder'?'block':'none';
+document.getElementById('uploadResult').style.display='none';
+document.getElementById('uploadProgress').style.display='none';
+}
+
+function b64(file){
+return new Promise((res,rej)=>{
+const r=new FileReader();
+r.onload=()=>res(r.result.split(',')[1]);
+r.onerror=rej;
+r.readAsDataURL(file);
+});
+}
+
+function renderHistory(){
+const h=JSON.parse(localStorage.getItem('rdaGitHistory')||'[]');
+const c=document.getElementById('historyList');
+if(h.length===0){
+c.innerHTML="<div style='text-align:center;color:var(--muted);padding:20px;'>Belum ada riwayat upload.</div>";
+return;
+}
+c.innerHTML=h.map((item, idx)=>`
+<div class="history-card">
+<div class="history-header">
+<div class="history-date">${item.date}</div>
+<div class="history-badge">${item.mode.toUpperCase()}</div>
+</div>
+<div class="history-meta"><i class="fas fa-book"></i> ${item.repo} <br><span style="font-size:11px;color:var(--muted);font-weight:400;">Batch: ${item.batchName} (${item.totalFiles} File)</span></div>
+<div class="history-links">
+${item.links.map(l=>`<a href="${l}" target="_blank">${l}</a>`).join('')}
+</div>
+<button class="btn btn-outline" style="margin-top:10px;padding:8px;font-size:12px;" onclick="copyHistoryLinks(${idx})"><i class="fas fa-copy"></i> Salin Semua Link</button>
+</div>
+`).join('');
+}
+
+function saveToHistory(mode, batchName, totalFiles, repo, links){
+const h=JSON.parse(localStorage.getItem('rdaGitHistory')||'[]');
+const now=new Date();
+const formattedDate=`${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+h.unshift({
+date: formattedDate,
+mode: mode,
+batchName: batchName,
+totalFiles: totalFiles,
+repo: repo,
+links: links
+});
+if(h.length>30) h.pop();
+localStorage.setItem('rdaGitHistory', JSON.stringify(h));
+renderHistory();
+}
+
+function clearHistoryObj(){
+if(confirm('Yakin ingin menghapus semua riwayat upload lokal?')){
+localStorage.removeItem('rdaGitHistory');
+renderHistory();
+}
+}
+
+function copyHistoryLinks(idx){
+const h=JSON.parse(localStorage.getItem('rdaGitHistory')||'[]');
+if(h[idx]){
+navigator.clipboard.writeText(h[idx].links.join('\n')).then(()=>{
+alert('Semua link berhasil disalin!');
+});
+}
+}
+
+async function startUploadProcess(){
+const o=document.getElementById('cfgOwner').value.trim();
+const r=document.getElementById('cfgRepo').value.trim();
+const b=document.getElementById('cfgBranch').value.trim()||'main';
+let fld=document.getElementById('cfgFolder').value.trim();
+if(fld&&!fld.endsWith('/'))fld+='/';
+if(!o||!r||!b)return alert('Setelan Owner, Repo, dan Branch belum lengkap!');
+
+const m=document.querySelector('input[name="upMode"]:checked').value;
+let tasks=[];
+let batchIdentityName="Unknown";
+
+const progUi=document.getElementById('uploadProgress');
+const resUi=document.getElementById('uploadResult');
+const pFill=document.getElementById('progFill');
+const pLbl=document.getElementById('progLabel');
+const pPct=document.getElementById('progPercent');
+const btn=document.getElementById('btnUpload');
+
+progUi.style.display='block';
+resUi.style.display='none';
+pFill.style.background='linear-gradient(90deg,var(--primary),var(--secondary))';
+pFill.style.width='0%';
+pPct.innerText='0%';
+btn.disabled=true;
+btn.innerHTML="<i class='fas fa-spinner fa-spin'></i> Memproses...";
+
+try{
+if(m==='single'){
+const fi=document.getElementById('fileSingle').files[0];
+if(!fi)throw new Error("Pilih file dulu!");
+batchIdentityName=fi.name;
+const bData=await b64(fi);
+const p=`${fld}${Date.now()}_${fi.name}`;
+tasks.push({path:p,base64:bData});
+}
+else if(m==='folder'){
+const fs=document.getElementById('fileFolder').files;
+if(fs.length===0)throw new Error("Pilih folder dulu!");
+batchIdentityName=fs[0].webkitRelativePath.split('/')[0]||'Folder Upload';
+pLbl.innerText="Membaca isi folder...";
+for(let i=0;i<fs.length;i++){
+const bData=await b64(fs[i]);
+let pathArr=fs[i].webkitRelativePath.split('/');
+pathArr.shift();
+const cleanPath=pathArr.join('/');
+const p=`${fld}${cleanPath}`;
+tasks.push({path:p,base64:bData});
+}
+}
+else if(m==='zip'){
+const fi=document.getElementById('fileZip').files[0];
+if(!fi)throw new Error("Pilih file ZIP dulu!");
+batchIdentityName=fi.name;
+pLbl.innerText="Mengekstrak ZIP secara lokal...";
+const z=new JSZip();
+const lz=await z.loadAsync(fi);
+const entries=Object.keys(lz.files);
+for(let i=0;i<entries.length;i++){
+const rel=entries[i];
+if(!lz.files[rel].dir){
+const bData=await lz.files[rel].async("base64");
+const p=`${fld}${rel}`;
+tasks.push({path:p,base64:bData});
+}
+}
+if(tasks.length===0)throw new Error("ZIP kosong!");
+}
+
+const total=tasks.length;
+let done=0;
+let treeItems = [];
+const batchSize = 10;
+
+for(let i=0; i<total; i+=batchSize){
+const batch = tasks.slice(i, i+batchSize);
+pLbl.innerText=`Upload Blobs (${done}/${total})...`;
+const blobPromises = batch.map(async (t) => {
+const blobRes = await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/blobs`, {
+content: t.base64,
+encoding: 'base64'
+});
+return {
+path: t.path,
+mode: '100644',
+type: 'blob',
+sha: blobRes.sha
+};
+});
+const results = await Promise.all(blobPromises);
+treeItems.push(...results);
+done += results.length;
+const pct = Math.round((done/total)*100);
+pPct.innerText = pct+"%";
+pFill.style.width = pct+"%";
+}
+
+pLbl.innerText="Mengambil referensi Git terbaru...";
+let commitSha = null;
+let baseTreeSha = null;
+try{
+const refRes = await apiReq('GET', `https://api.github.com/repos/${o}/${r}/git/ref/heads/${b}`);
+commitSha = refRes.object.sha;
+const commitRes = await apiReq('GET', `https://api.github.com/repos/${o}/${r}/git/commits/${commitSha}`);
+baseTreeSha = commitRes.tree.sha;
+}catch(e){
+commitSha = null;
+baseTreeSha = null;
+}
+
+pLbl.innerText="Menyusun Git Tree...";
+const treeBody = {
+tree: treeItems.map(ti => ({path: ti.path, mode: ti.mode, type: ti.type, sha: ti.sha}))
+};
+if(baseTreeSha) treeBody.base_tree = baseTreeSha;
+const newTreeRes = await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/trees`, treeBody);
+
+pLbl.innerText="Membuat Commit...";
+const newCommitRes = await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/commits`, {
+message: `Batch upload ${total} files via ArkRega Media`,
+tree: newTreeRes.sha,
+parents: commitSha ? [commitSha] : []
+});
+
+pLbl.innerText="Pushing ke Repositori...";
+if(commitSha){
+await apiReq('PATCH', `https://api.github.com/repos/${o}/${r}/git/refs/heads/${b}`, {
+sha: newCommitRes.sha
+});
+}else{
+await apiReq('POST', `https://api.github.com/repos/${o}/${r}/git/refs`, {
+ref: `refs/heads/${b}`,
+sha: newCommitRes.sha
+});
+}
+
+pLbl.innerText="Selesai!";
+pFill.style.width='100%';
+pPct.innerText='100%';
+
+const finalLinks = treeItems.map(ti => {
+const enc = ti.path.split('/').map(encodeURIComponent).join('/');
+return `https://raw.githubusercontent.com/${o}/${r}/${b}/${enc}`;
+});
+saveToHistory(m, batchIdentityName, total, `${o}/${r}`, finalLinks);
+
+let resHtml=`<b><i class="fas fa-check-circle"></i> Berhasil push ${total} file dalam 1 commit!</b><br><br>`;
+resHtml+=`<div style="max-height:200px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);padding:10px;border-radius:8px;background:rgba(0,0,0,0.3);">`;
+
+const maxDisplay = 100;
+for(let i=0; i<Math.min(total, maxDisplay); i++){
+resHtml+=`<a href="${finalLinks[i]}" target="_blank" style="display:block;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:5px;">${finalLinks[i]}</a>`;
+}
+
+if(total > maxDisplay){
+resHtml+=`<div style="color:var(--muted);margin-top:10px;">...dan ${total - maxDisplay} file lainnya. Cek tab Riwayat.</div>`;
+}
+resHtml+=`</div>`;
+
+resUi.innerHTML=resHtml;
+resUi.style.display='block';
+
+}catch(err){
+pLbl.innerText="Error!";
+pFill.style.background="#ff4d4d";
+alert(err.message||'Terjadi kesalahan saat upload.');
+console.error(err);
+}finally{
+btn.disabled=false;
+btn.innerHTML="<i class='fas fa-upload'></i> Mulai Upload";
+fetchFiles(currentExpPath);
+}
+}
+</script>
+</body>
+</html>
